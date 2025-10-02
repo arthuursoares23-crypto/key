@@ -1,0 +1,152 @@
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local placeId = game.PlaceId
+local fixedAccessCode = "95a20f6011570a4f9aab46df776dfe80"
+local linkUrl = "https://www.roblox.com/share?code=" .. fixedAccessCode .. "&type=Server"
+
+-- GUI
+local screenGui = Instance.new("ScreenGui", playerGui)
+screenGui.Name = "KeyManagerGui"
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 320, 0, 160)
+frame.Position = UDim2.new(0.5, -160, 0.5, -80)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+frame.BorderSizePixel = 0
+frame.Active = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 18)
+
+-- Sombra
+local shadow = Instance.new("Frame", screenGui)
+shadow.Size = frame.Size + UDim2.new(0, 10, 0, 10)
+shadow.Position = frame.Position + UDim2.new(0, 5, 0, 5)
+shadow.AnchorPoint = frame.AnchorPoint
+shadow.BackgroundColor3 = Color3.new(0, 0, 0)
+shadow.BackgroundTransparency = 0.75
+shadow.ZIndex = frame.ZIndex - 1
+Instance.new("UICorner", shadow).CornerRadius = UDim.new(0, 18)
+
+-- Gradiente
+local gradient = Instance.new("UIGradient", frame)
+gradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 70, 80)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 35))
+}
+gradient.Rotation = 90
+
+-- Caixa de texto
+local keyBox = Instance.new("TextBox", frame)
+keyBox.Size = UDim2.new(1, -30, 0, 45)
+keyBox.Position = UDim2.new(0, 15, 0, 15)
+keyBox.PlaceholderText = "Enter your key here..."
+keyBox.ClearTextOnFocus = true
+keyBox.Text = ""
+keyBox.TextWrapped = true
+keyBox.TextXAlignment = Enum.TextXAlignment.Center
+keyBox.Font = Enum.Font.GothamBold
+keyBox.TextSize = 18
+keyBox.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+keyBox.TextColor3 = Color3.fromRGB(230, 230, 230)
+keyBox.BorderSizePixel = 0
+Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0, 14)
+
+-- Mensagem temporária
+local function showMessage(text, duration)
+	keyBox.Text = text
+	delay(duration or 3, function()
+		keyBox.Text = ""
+	end)
+end
+
+-- Botão Get Key
+local getKeyButton = Instance.new("TextButton", frame)
+getKeyButton.Size = UDim2.new(0.45, 0, 0, 55)
+getKeyButton.Position = UDim2.new(0.05, 0, 0, 75)
+getKeyButton.Text = "Get Key"
+getKeyButton.Font = Enum.Font.GothamBold
+getKeyButton.TextSize = 20
+getKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+getKeyButton.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+getKeyButton.BorderSizePixel = 0
+Instance.new("UICorner", getKeyButton).CornerRadius = UDim.new(0, 16)
+
+-- Botão KEY
+local keyButton = Instance.new("TextButton", frame)
+keyButton.Size = UDim2.new(0.45, 0, 0, 55)
+keyButton.Position = UDim2.new(0.5, 0, 0, 75)
+keyButton.Text = "KEY"
+keyButton.Font = Enum.Font.GothamBold
+keyButton.TextSize = 20
+keyButton.TextColor3 = Color3.fromRGB(255, 60, 60)
+keyButton.BackgroundColor3 = Color3.fromRGB(160, 20, 20)
+keyButton.BorderSizePixel = 0
+Instance.new("UICorner", keyButton).CornerRadius = UDim.new(0, 16)
+
+-- Get Key: tenta teleportar
+getKeyButton.MouseButton1Click:Connect(function()
+	local success, result = pcall(function()
+		TeleportService:TeleportToPrivateServer(placeId, fixedAccessCode, {player})
+	end)
+	if not success then
+		showMessage("Incorrect key", 3)
+	end
+end)
+
+-- KEY: copia o link e mostra "Link copied"
+keyButton.MouseButton1Click:Connect(function()
+	if setclipboard then
+		setclipboard(linkUrl)
+	end
+	showMessage("Link copied", 3)
+end)
+
+-- Arrastar interface
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function updatePosition(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+	shadow.Position = frame.Position + UDim2.new(0, 5, 0, 5)
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		updatePosition(input)
+	end
+end)
